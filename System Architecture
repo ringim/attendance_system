@@ -1,0 +1,37 @@
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend (React)                      │
+│  - Dashboard Page (stats + recent logs)                 │
+│  - Attendance Page (full log viewer + filters)          │
+│  - Employees Page (CRUD + sync from device)             │
+│  - Devices Page (CRUD + test + info)                    │
+└─────────────────────────────────────────────────────────┘
+                           ↓ API Calls
+┌─────────────────────────────────────────────────────────┐
+│                  Backend API (Express)                   │
+│  - Attendance Controller (logs, sync, stats)            │
+│  - Employee Controller (CRUD, sync from device)         │
+│  - Device Controller (CRUD, test, info)                 │
+│  - Auth Controller (login, verify)                      │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│                      Services Layer                      │
+│  - Sync Service (device sync logic)                     │
+│  - ZK Device Service (device communication)             │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│                   Background Worker                      │
+│  - Cron-based scheduler (every 5 minutes)               │
+│  - Automatic sync of all devices                        │
+│  - Error handling & logging                             │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│              Database (PostgreSQL/Supabase)              │
+│  - attendance_logs (attendance records)                 │
+│  - employees (employee data)                            │
+│  - devices (device registry)                            │
+│  - sync_logs (sync history)                             │
+│  - users (admin users)                                  │
+└─────────────────────────────────────────────────────────┘

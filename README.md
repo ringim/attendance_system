@@ -1,710 +1,392 @@
-# 🎯 Attendance Management System
+# ZKTeco Attendance Management System
 
-A production-ready, scalable attendance management system integrating ZKTeco S900 biometric devices with cloud backend and modern web dashboard.
+A modern, full-stack attendance management system with real-time monitoring capabilities for ZKTeco biometric devices. Built with React, Node.js, and PostgreSQL.
 
-## 📋 Table of Contents
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![React](https://img.shields.io/badge/react-18.2.0-blue.svg)
 
-- [Overview](#overview)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Tech Stack](#tech-stack)
-- [Quick Start](#quick-start)
-- [Detailed Setup](#detailed-setup)
-- [Usage Guide](#usage-guide)
-- [API Documentation](#api-documentation)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+## Features
 
-## 🌟 Overview
+### Core Functionality
 
-This system provides a complete solution for managing employee attendance using ZKTeco biometric devices. It features real-time syncing, cloud storage, role-based access control, and an intuitive web dashboard.
+- **Real-Time Attendance Monitoring** - Live feed of attendance events with SSE (Server-Sent Events)
+- **Employee Management** - Complete CRUD operations with bulk import from devices
+- **Device Management** - Register, test, and manage multiple ZKTeco devices
+- **Attendance Logs** - Comprehensive filtering, search, and CSV export
+- **Dashboard Analytics** - Real-time statistics and insights
+- **Multi-Device Support** - Monitor multiple devices simultaneously
 
-### Key Capabilities
+### Technical Highlights
 
-- **Device Integration**: Connect multiple ZKTeco S900 devices via TCP/IP
-- **Background Syncing**: Automatic periodic synchronization of attendance data
-- **Cloud Storage**: PostgreSQL database with Supabase for scalability
-- **Web Dashboard**: Modern React interface for monitoring and management
-- **RESTful API**: Clean, documented API for extensibility
-- **Role-Based Access**: Admin, Manager, and Viewer roles
-- **Production-Ready**: Comprehensive error handling, logging, and monitoring
+- JWT-based authentication with role-based access control
+- Automatic background sync worker with configurable intervals
+- Batch operations for performance optimization
+- RESTful API with comprehensive error handling
+- Responsive UI with Tailwind CSS
+- PostgreSQL with custom schema architecture
 
-## ✨ Features
+## Compatible Devices
 
-### Backend
+This system works with ZKTeco devices that support TCP/IP communication:
 
-- ✅ ZKTeco S900 device integration
-- ✅ Multi-device support
-- ✅ Background sync worker with cron scheduling
-- ✅ Automatic deduplication of records
-- ✅ Connection pooling and retry logic
-- ✅ JWT authentication
-- ✅ Role-based authorization
-- ✅ Input validation and sanitization
-- ✅ Structured logging with Winston
-- ✅ Rate limiting
-- ✅ Comprehensive error handling
-- ✅ Database migrations with Drizzle ORM
-- ✅ Audit logging
+- ZKTeco S900
+- ZKTeco F18
+- ZKTeco K40
+- ZKTeco MB360
+- Other ZKTeco models with TCP/IP support
 
-### Frontend
-
-- ✅ Responsive React dashboard
-- ✅ Real-time attendance monitoring
-- ✅ Employee management
-- ✅ Device registration and testing
-- ✅ Attendance log viewer with filtering
-- ✅ Dashboard with statistics
-- ✅ Manual sync trigger
-- ✅ Dark mode support (coming soon)
-- ✅ Export functionality (coming soon)
-
-## 🏗️ System Architecture
-
-```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│  ZKTeco     │◄────────┤   Backend    │◄────────┤   Frontend  │
-│  S900       │  TCP/IP │   Node.js    │  REST   │   React     │
-│  Devices    │         │   Express    │   API   │   SPA       │
-└─────────────┘         └──────────────┘         └─────────────┘
-                               │
-                               │
-                        ┌──────▼───────┐
-                        │  PostgreSQL  │
-                        │  (Supabase)  │
-                        └──────────────┘
-                               │
-                        ┌──────▼───────┐
-                        │ Sync Worker  │
-                        │  (Cron Job)  │
-                        └──────────────┘
-```
-
-### Components
-
-1. **ZKTeco S900 Devices**: Biometric attendance terminals
-2. **Backend API**: Node.js + Express server
-3. **Database**: PostgreSQL (hosted on Supabase)
-4. **Sync Worker**: Background process for data synchronization
-5. **Frontend Dashboard**: React web application
-6. **File Storage**: Supabase Storage (optional, for future use)
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 20+
 - **Framework**: Express.js
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Drizzle ORM
-- **Device SDK**: zklib
-- **Authentication**: JWT (jsonwebtoken)
+- **Device Communication**: node-zklib
+- **Authentication**: JWT
 - **Validation**: Joi
 - **Logging**: Winston
-- **Scheduler**: node-cron
 
 ### Frontend
 
 - **Framework**: React 18
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **HTTP Client**: Axios
 - **Routing**: React Router v6
-- **State**: Zustand
-- **HTTP**: Axios
-- **Charts**: Recharts
-- **Icons**: Lucide React
 
-### Infrastructure
-
-- **Database**: Supabase PostgreSQL
-- **Deployment**: Docker / PM2 / Systemd
-- **Reverse Proxy**: Nginx (recommended)
-
-## 🚀 Quick Start
-
-### Important: Multi-Schema Database Setup
-
-This project uses **PostgreSQL schemas** for data isolation, allowing multiple projects on one Supabase instance.
-
-📖 **Documentation**:
-
-- [SETUP.md](SETUP.md) - Complete step-by-step setup guide
-- [MULTI_SCHEMA_SETUP.md](MULTI_SCHEMA_SETUP.md) - Multi-schema configuration details
-- [SCHEMA_QUICK_REFERENCE.md](SCHEMA_QUICK_REFERENCE.md) - Quick commands and tips
+## Quick Start
 
 ### Prerequisites
 
-```bash
-# Check Node.js version (18+ required)
-node --version
+- Node.js 18+ and npm
+- PostgreSQL database (or Supabase account)
+- ZKTeco device with TCP/IP connectivity
 
-# Check npm version
-npm --version
-```
+### Installation
 
-### 1. Clone Repository
+1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd attendance-system
+git clone https://github.com/ringim/attendance_system.git
+cd attendance_system
 ```
 
-### 2. Backend Setup
+2. Setup Backend
 
 ```bash
 cd backend
-
-# Install dependencies
 npm install
-
-# Configure environment
 cp .env.example .env
-# Edit .env with your configuration
-# IMPORTANT: Set DATABASE_SCHEMA=attendance_system
-
-# Run database migrations
-npm run db:migrate
-
-# Start backend server
-npm run dev
+# Edit .env with your database credentials
+npm run migrate
+npm run create-admin
+npm start
 ```
 
-Backend runs at: `http://localhost:5000`
-
-### 3. Frontend Setup
+3. Setup Frontend
 
 ```bash
-cd ../frontend
-
-# Install dependencies
+cd frontend
 npm install
-
-# Configure environment
-echo "VITE_API_URL=http://localhost:5000/api/v1" > .env
-
-# Start frontend
+cp .env.example .env
+# Edit .env with your backend URL
 npm run dev
 ```
 
-Frontend runs at: `http://localhost:3000`
+4. Access the application
 
-### 4. Create Admin User
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+- Default credentials: `admin` / `admin123`
 
-Connect to your database and run:
+## Configuration
 
-```bash
-# Option 1: Use Drizzle Studio (recommended)
-cd backend
-npm run db:studio
+### Environment Variables
+
+#### Backend (.env)
+
+```env
+# Database
+DATABASE_URL=your_postgresql_connection_string
+
+# JWT
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=7d
+
+# Server
+PORT=5000
+NODE_ENV=development
+
+# Device Sync
+DEVICE_SYNC_INTERVAL=*/5 * * * *
+ENABLE_AUTO_SYNC=true
 ```
 
-```sql
-# Option 2: Use Supabase SQL Editor
-SET search_path TO attendance_system;
+#### Frontend (.env)
 
-INSERT INTO users (username, email, password_hash, full_name, role, status)
-VALUES (
-  'admin',
-  'admin@example.com',
-  '$2a$10$xyz...', -- Hash your password with bcrypt
-  'System Administrator',
-  'admin',
-  'active'
-);
+```env
+VITE_API_URL=http://localhost:5000
 ```
 
-**Note**: Since we use a custom schema, use SQL Editor (not Table Editor) in Supabase.
+See [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) for detailed configuration guide.
 
-### 5. Register a Device
+## Usage
 
-1. Login to dashboard at `http://localhost:3000`
-2. Navigate to "Devices"
-3. Click "Add Device"
-4. Enter device details:
-   - Name: Main Entrance
-   - IP Address: 192.168.1.100
-   - Port: 4370 (default)
-   - Location: Building A
-5. Test connection
-6. Save device
+### 1. Register a Device
 
-## 📖 Detailed Setup
+Navigate to Devices page and add your ZKTeco device:
 
-### Database Setup (Supabase)
+- IP Address: Device IP (e.g., 192.168.1.5)
+- Port: Usually 4370
+- Name: Descriptive name
+- Location: Physical location
 
-1. **Create Supabase Project**
-   - Go to [supabase.com](https://supabase.com)
-   - Create new project
-   - Note your project URL and keys
+### 2. Sync Employees
 
-2. **Get Database URL**
+Go to Employees page and click "Sync from Device" to import all users from your device.
 
-   ```
-   Settings → Database → Connection String (Direct)
-   ```
+### 3. Monitor Attendance
 
-3. **Update .env**
+- **Dashboard**: View today's statistics and recent logs
+- **Attendance Logs**: Filter, search, and export attendance records
+- **Live Monitor**: Real-time attendance feed with instant notifications
 
-   ```env
-   DATABASE_URL=postgresql://postgres:[password]@[host]:5432/postgres
-   SUPABASE_URL=https://[project-ref].supabase.co
-   SUPABASE_ANON_KEY=your-anon-key
-   ```
+### 4. Background Sync
 
-4. **Run Migrations**
-   ```bash
-   cd backend
-   npm run db:migrate
-   ```
-
-### ZKTeco Device Setup
-
-1. **Network Configuration**
-   - Connect device to network
-   - Set static IP or reserve DHCP
-   - Ensure device is reachable from server
-
-2. **Device Settings**
-   - Enable TCP/IP communication
-   - Default port: 4370
-   - Note device serial number
-
-3. **Test Connectivity**
-
-   ```bash
-   ping <device-ip>
-   telnet <device-ip> 4370
-   ```
-
-4. **Register in System**
-   - Use frontend UI or API
-   - Test connection via "Test Connection" button
-
-### Background Worker Setup
-
-The sync worker runs as a separate process:
+Start the automatic sync worker:
 
 ```bash
 cd backend
 npm run worker
 ```
 
-**As systemd service (Linux):**
+Or use PM2 for production:
 
 ```bash
-# Create service file
-sudo nano /etc/systemd/system/attendance-worker.service
-
-[Unit]
-Description=Attendance Sync Worker
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/path/to/backend
-ExecStart=/usr/bin/node src/workers/syncWorker.js
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
-# Enable and start
-sudo systemctl enable attendance-worker
-sudo systemctl start attendance-worker
+pm2 start src/workers/syncWorker.js --name attendance-worker
 ```
 
-## 📚 Usage Guide
-
-### Employee Management
-
-**Add Employee:**
-
-1. Navigate to "Employees"
-2. Click "Add Employee"
-3. Fill in details:
-   - Employee Code (unique)
-   - Name
-   - Department
-   - Device User ID (from ZKTeco device)
-4. Save
-
-**Bulk Import:**
-
-1. Prepare CSV file:
-   ```csv
-   employeeCode,name,department,deviceUserId
-   EMP001,John Doe,IT,1
-   EMP002,Jane Smith,HR,2
-   ```
-2. Use "Bulk Import" feature
-3. Review and confirm
-
-### Device Management
-
-**Register Device:**
-
-- IP Address: Device network address
-- Port: Default 4370
-- Location: Physical location
-- Test connection before saving
-
-**Sync Devices:**
-
-- Manual: Click "Sync Now" button
-- Automatic: Runs every N minutes (configured in .env)
-
-### Attendance Monitoring
-
-**View Logs:**
-
-- Filter by date range
-- Filter by employee
-- Filter by device
-- Filter by direction (in/out)
-
-**Employee Summary:**
-
-- Select employee
-- Choose date range
-- View attendance statistics
-- Export report (coming soon)
-
-### Sync Management
-
-**Monitor Sync Status:**
-
-- Dashboard shows last sync time
-- Sync statistics available
-- View sync history
-
-**Trigger Manual Sync:**
-
-- All devices: Click "Sync All"
-- Specific device: Device page → "Sync Now"
-
-## 🔌 API Documentation
+## API Documentation
 
 ### Authentication
 
-**Login:**
-
-```bash
+```
 POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "username": "admin",
-  "password": "password"
-}
-
-Response:
-{
-  "success": true,
-  "data": {
-    "user": {...},
-    "token": "jwt-token"
-  }
-}
-```
-
-**Use Token:**
-
-```bash
-Authorization: Bearer <token>
-```
-
-### Employees
-
-**List Employees:**
-
-```bash
-GET /api/v1/employees?page=1&limit=50&search=john
-
-Response:
-{
-  "success": true,
-  "data": {
-    "employees": [...],
-    "pagination": {...}
-  }
-}
-```
-
-**Create Employee:**
-
-```bash
-POST /api/v1/employees
-Authorization: Bearer <token>
-
-{
-  "employeeCode": "EMP001",
-  "name": "John Doe",
-  "department": "IT",
-  "deviceUserId": 1
-}
+POST /api/v1/auth/logout
+GET  /api/v1/auth/verify
 ```
 
 ### Devices
 
-**Register Device:**
-
-```bash
-POST /api/v1/devices
-Authorization: Bearer <token>
-
-{
-  "name": "Main Entrance",
-  "ipAddress": "192.168.1.100",
-  "port": 4370,
-  "location": "Building A"
-}
+```
+GET    /api/v1/devices
+POST   /api/v1/devices
+PUT    /api/v1/devices/:id
+DELETE /api/v1/devices/:id
+POST   /api/v1/devices/:id/test
+GET    /api/v1/devices/:id/info
 ```
 
-**Test Connection:**
+### Employees
 
-```bash
-POST /api/v1/devices/:id/test
-Authorization: Bearer <token>
-
-Response:
-{
-  "success": true,
-  "message": "Connection successful",
-  "data": {...}
-}
+```
+GET    /api/v1/employees
+POST   /api/v1/employees
+PUT    /api/v1/employees/:id
+DELETE /api/v1/employees/:id
+POST   /api/v1/employees/sync
 ```
 
 ### Attendance
 
-**Get Logs:**
-
-```bash
-GET /api/v1/attendance/logs?startDate=2024-01-01&endDate=2024-01-31
-
-Response:
-{
-  "success": true,
-  "data": {
-    "logs": [...],
-    "pagination": {...}
-  }
-}
 ```
-
-**Trigger Sync:**
-
-```bash
+GET  /api/v1/attendance/logs
+GET  /api/v1/attendance/dashboard
 POST /api/v1/attendance/sync
-Authorization: Bearer <token>
-
-{
-  "deviceId": "uuid" // optional, sync specific device
-}
+GET  /api/v1/attendance/realtime/:deviceId (SSE)
+GET  /api/v1/attendance/realtime-all (SSE)
 ```
 
-See `backend/README.md` for complete API documentation.
+## Deployment
 
-## 🚢 Deployment
+### Quick Deploy Options
 
-### Docker Deployment
+- **Railway**: One-click deploy with PostgreSQL addon
+- **DigitalOcean**: Droplet with PM2 process manager
+- **AWS**: EC2 + RDS for production scale
 
-**Backend Dockerfile:**
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for comprehensive deployment instructions.
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 5000
-CMD ["node", "src/index.js"]
+### Multi-Location Setup
+
+For distributed deployments across multiple locations:
+
+- VPN setup (Tailscale/WireGuard)
+- Port forwarding configuration
+- DDNS for dynamic IPs
+
+See [ZKTECO_LIBRARY_CAPABILITIES.md](ZKTECO_LIBRARY_CAPABILITIES.md) for multi-location architecture.
+
+## Project Structure
+
+```
+attendance_system/
+├── backend/
+│   ├── src/
+│   │   ├── config/          # Configuration files
+│   │   ├── database/        # Database schema and migrations
+│   │   ├── middlewares/     # Express middlewares
+│   │   ├── modules/         # Feature modules
+│   │   │   ├── attendance/
+│   │   │   ├── auth/
+│   │   │   ├── devices/
+│   │   │   └── employees/
+│   │   ├── routes/          # API routes
+│   │   ├── services/        # Business logic
+│   │   ├── utils/           # Utilities
+│   │   └── workers/         # Background jobs
+│   └── scripts/             # Database scripts
+├── frontend/
+│   └── src/
+│       ├── components/      # React components
+│       ├── pages/           # Page components
+│       ├── services/        # API services
+│       ├── store/           # State management
+│       └── styles/          # CSS files
+└── docs/                    # Documentation
 ```
 
-**Docker Compose:**
+## Database Schema
 
-```yaml
-version: "3.8"
+The system uses a custom PostgreSQL schema (`attendance_system`) with the following tables:
 
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "5000:5000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-    restart: always
+- `users` - System users with role-based access
+- `devices` - Registered ZKTeco devices
+- `employees` - Employee records
+- `attendance_logs` - Attendance records
+- `sync_history` - Sync operation logs
+- `audit_logs` - System audit trail
 
-  worker:
-    build: ./backend
-    command: node src/workers/syncWorker.js
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-    restart: always
+See [SCHEMA_ARCHITECTURE.md](SCHEMA_ARCHITECTURE.md) for detailed schema documentation.
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-```
+## Development
 
-### PM2 Deployment
+### Running Tests
 
 ```bash
-# Install PM2
-npm install -g pm2
-
 # Backend
 cd backend
-pm2 start src/index.js --name attendance-api
+npm test
 
-# Worker
-pm2 start src/workers/syncWorker.js --name attendance-worker
-
-# Save and auto-restart
-pm2 save
-pm2 startup
+# Frontend
+cd frontend
+npm test
 ```
 
-### Nginx Configuration
+### Code Style
 
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
+- ESLint for JavaScript linting
+- Prettier for code formatting
+- Follow Airbnb JavaScript Style Guide
 
-    # Frontend
-    location / {
-        root /var/www/attendance/frontend/dist;
-        try_files $uri /index.html;
-    }
+### Contributing
 
-    # API
-    location /api {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 🐛 Troubleshooting
+## Limitations
+
+- **Fingerprint Enrollment**: Must be done physically on the device (not supported via software)
+- **Device Clock**: Some devices may have incorrect time settings (check device configuration)
+- **Network**: Devices must be accessible via TCP/IP from the server
+
+## Troubleshooting
 
 ### Device Connection Issues
 
-**Problem**: Cannot connect to device
+```bash
+# Test device connectivity
+ping 192.168.1.5
 
-**Solutions**:
+# Check if port is open
+nc -zv 192.168.1.5 4370
+```
 
-1. Verify device IP and port
-2. Check network connectivity: `ping <device-ip>`
-3. Check firewall rules
-4. Verify device is powered on
-5. Test from backend server directly
+### Database Connection
 
-### Database Connection Issues
+```bash
+# Test PostgreSQL connection
+psql $DATABASE_URL -c "SELECT 1"
+```
 
-**Problem**: Cannot connect to database
+### Logs
 
-**Solutions**:
+```bash
+# Backend logs
+tail -f backend/logs/combined.log
 
-1. Verify DATABASE_URL in .env
-2. Check Supabase project status
-3. Verify network access
-4. Check connection limits
+# Worker logs
+pm2 logs attendance-worker
+```
 
-### Sync Issues
+## Performance
 
-**Problem**: Attendance not syncing
+- Handles 1000+ employees efficiently
+- Batch operations for bulk imports (100 records/chunk)
+- Real-time monitoring with minimal latency
+- Optimized database queries with indexes
 
-**Solutions**:
+## Security
 
-1. Check worker is running: `pm2 status`
-2. View worker logs: `tail -f logs/combined.log`
-3. Verify devices are online
-4. Check employee deviceUserId mapping
-5. Trigger manual sync
+- JWT token-based authentication
+- Password hashing with bcrypt
+- SQL injection prevention with parameterized queries
+- CORS configuration for API security
+- Environment variable protection
+- Rate limiting on API endpoints
 
-### Authentication Issues
+## Roadmap
 
-**Problem**: Cannot login
+- [ ] Mobile app (React Native)
+- [ ] Advanced reporting and analytics
+- [ ] Email/SMS notifications
+- [ ] Shift management
+- [ ] Leave management integration
+- [ ] Multi-tenant SaaS version
+- [ ] Biometric template backup
 
-**Solutions**:
-
-1. Verify user exists in database
-2. Check password hash
-3. Verify JWT_SECRET is set
-4. Check token expiration
-5. Clear browser cache/localStorage
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
-
-### Development Guidelines
-
-- Follow existing code style
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation
-- Ensure all tests pass
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- ZKTeco for biometric device technology
-- Supabase for database platform
-- Open source community for amazing tools
+- Built with assistance from Claude (Anthropic) and Kiro AI
+- ZKTeco for device protocol documentation
+- Open source community for amazing tools and libraries
 
-## 📞 Support
+## Author
 
-For issues and questions:
+**Abubakar Kabiru**
 
-- Create an issue on GitHub
-- Check documentation in /backend and /frontend
-- Review troubleshooting guide
+- LinkedIn: [linkedin.com/in/abubakarringim](https://linkedin.com/in/abubakarringim)
+- GitHub: [@ringim](https://github.com/ringim)
 
-## 🗺️ Roadmap
+## Support
 
-### Version 1.1 (Planned)
+For issues, questions, or contributions:
 
-- [ ] WebSocket real-time updates
-- [ ] Export to CSV/PDF
-- [ ] Email notifications
-- [ ] Advanced reporting
-- [ ] Multi-tenancy support
-
-### Version 1.2 (Planned)
-
-- [ ] Mobile app (React Native)
-- [ ] Biometric enrollment via web
-- [ ] Shift management
-- [ ] Leave management
-- [ ] Geofencing
-
-### Version 2.0 (Future)
-
-- [ ] AI-powered analytics
-- [ ] Facial recognition support
-- [ ] Integration with HR systems
-- [ ] Advanced access control
+- Open an issue on GitHub
+- Contact via LinkedIn
 
 ---
 
-**Built with ❤️ for modern attendance management**
+**Development Time**: ~8-10 hours
+**Status**: Production Ready ✅

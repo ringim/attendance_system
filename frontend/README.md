@@ -30,11 +30,15 @@ frontend/
 │   │   ├── DashboardPage.jsx
 │   │   ├── EmployeesPage.jsx
 │   │   ├── DevicesPage.jsx
-│   │   └── AttendancePage.jsx
+│   │   ├── AttendancePage.jsx
+│   │   ├── RealTimeMonitorPage.jsx
+│   │   ├── BackgroundMonitorPage.jsx
+│   │   └── ManualMonitorPage.jsx
 │   ├── services/           # API services
 │   │   └── api.js
 │   ├── store/              # Zustand stores
-│   │   └── authStore.js
+│   │   ├── authStore.js
+│   │   └── backgroundMonitorStore.js
 │   ├── utils/              # Utility functions
 │   ├── styles/             # Global styles
 │   ├── App.jsx             # Main app component
@@ -49,6 +53,7 @@ frontend/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ LTS
 - npm or yarn
 - Backend API running
@@ -56,23 +61,27 @@ frontend/
 ### Installation
 
 1. **Navigate to frontend**
+
    ```bash
    cd frontend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
-   
+
    Create `.env` file:
+
    ```env
    VITE_API_URL=http://localhost:5000/api/v1
    ```
 
 4. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -98,38 +107,46 @@ npm run preview
 ### Pages
 
 #### Dashboard
+
 - Overview statistics
 - Recent attendance logs
 - Quick actions
 - System status
 
 #### Employees
+
 - Employee list with search/filter
 - Add/Edit/Delete employees
 - Department management
 - Bulk import
 
 #### Devices
+
 - Device registry
 - Connection testing
 - Device information
 - User synchronization
 
 #### Attendance
+
 - Attendance logs viewer
 - Date range filtering
 - Employee filtering
 - Export functionality
 - Manual sync trigger
+- Real-time monitoring feed
+- Background monitoring (24/7 capture with persistent state)
 
 ### Key Components
 
 **Layout Components:**
+
 - `MainLayout` - App shell with sidebar
 - `Sidebar` - Navigation menu
 - `Header` - Top bar with user menu
 
 **Shared Components:**
+
 - `Card` - Content container
 - `Table` - Data tables
 - `Modal` - Dialog boxes
@@ -141,6 +158,7 @@ npm run preview
 ## 🔐 Authentication
 
 ### Login Flow
+
 1. User enters credentials
 2. API validates and returns JWT
 3. Token stored in localStorage
@@ -148,10 +166,13 @@ npm run preview
 5. Auto-redirect on token expiration
 
 ### Protected Routes
+
 All routes except `/login` require authentication. Unauthenticated users are redirected to login page.
 
 ### Role-Based UI
+
 Components adapt based on user role:
+
 - **Admin**: Full access
 - **Manager**: Limited write access
 - **Viewer**: Read-only
@@ -162,18 +183,18 @@ Components adapt based on user role:
 
 ```javascript
 // Example API call
-import { employeeAPI } from './services/api';
+import { employeeAPI } from "./services/api";
 
 const getEmployees = async () => {
   try {
     const response = await employeeAPI.getAll({
       page: 1,
       limit: 50,
-      search: 'john',
+      search: "john",
     });
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch employees:', error);
+    console.error("Failed to fetch employees:", error);
   }
 };
 ```
@@ -181,12 +202,14 @@ const getEmployees = async () => {
 ### Available API Methods
 
 **Auth:**
+
 - `authAPI.login(credentials)`
 - `authAPI.register(userData)`
 - `authAPI.getProfile()`
 - `authAPI.changePassword(data)`
 
 **Employees:**
+
 - `employeeAPI.getAll(params)`
 - `employeeAPI.getById(id)`
 - `employeeAPI.create(data)`
@@ -194,36 +217,62 @@ const getEmployees = async () => {
 - `employeeAPI.delete(id)`
 
 **Devices:**
+
 - `deviceAPI.getAll(params)`
 - `deviceAPI.register(data)`
 - `deviceAPI.testConnection(id)`
 - `deviceAPI.getInfo(id)`
 
 **Attendance:**
+
 - `attendanceAPI.getLogs(params)`
 - `attendanceAPI.triggerSync(deviceId)`
 - `attendanceAPI.getDashboardStats()`
 - `attendanceAPI.getEmployeeSummary(employeeId, params)`
+- `attendanceAPI.getBackgroundMonitorStatus()`
+- `attendanceAPI.startBackgroundMonitor()`
+- `attendanceAPI.stopBackgroundMonitor()`
 
 ## 🗂️ State Management
 
 ### Zustand Stores
 
 **Auth Store:**
+
 ```javascript
-import { useAuthStore } from './store/authStore';
+import { useAuthStore } from "./store/authStore";
 
 // In component
 const { user, login, logout } = useAuthStore();
 ```
 
 Store features:
+
 - User authentication state
 - Login/logout actions
 - Token management
 - Profile fetching
+- Clears background monitoring on logout
+
+**Background Monitoring Store:**
+
+```javascript
+import { useBackgroundMonitorStore } from "./store/backgroundMonitorStore";
+
+// In component
+const { logs, setLogs, addLog, clearLogs } = useBackgroundMonitorStore();
+```
+
+Store features:
+
+- Persistent log storage (localStorage)
+- Smart caching with 5-minute refresh
+- Real-time log additions via SSE
+- Automatic pruning of old logs
+- Survives page navigation
 
 ### Local State
+
 - Component-level state with `useState`
 - Form state management
 - UI state (modals, dropdowns)
@@ -231,9 +280,11 @@ Store features:
 ## 🎨 Styling
 
 ### Tailwind CSS
+
 Utility-first CSS framework for rapid development.
 
 **Common Patterns:**
+
 ```jsx
 // Card
 <div className="card">
@@ -247,9 +298,9 @@ Utility-first CSS framework for rapid development.
 </button>
 
 // Input
-<input 
-  className="input" 
-  type="text" 
+<input
+  className="input"
+  type="text"
   placeholder="Enter text"
 />
 
@@ -260,7 +311,9 @@ Utility-first CSS framework for rapid development.
 ```
 
 ### Custom Classes
+
 Defined in `src/styles/index.css`:
+
 - `.btn`, `.btn-primary`, `.btn-secondary`
 - `.input`
 - `.card`
@@ -271,41 +324,77 @@ Defined in `src/styles/index.css`:
 ### Recharts Integration
 
 ```jsx
-import { LineChart, Line, XAxis, YAxis } from 'recharts';
+import { LineChart, Line, XAxis, YAxis } from "recharts";
 
 <LineChart data={data} width={600} height={300}>
   <XAxis dataKey="date" />
   <YAxis />
   <Line type="monotone" dataKey="count" stroke="#3b82f6" />
-</LineChart>
+</LineChart>;
 ```
 
 ### Chart Types
+
 - Line charts - Attendance trends
 - Bar charts - Department statistics
 - Pie charts - Status distribution
 
-## 🔄 Real-time Features (Future)
+## 🔄 Real-time Features
 
-### WebSocket Integration (Planned)
+### Server-Sent Events (SSE)
+
+**Manual Real-Time Monitoring:**
+
 ```javascript
-// Example WebSocket connection
-const ws = new WebSocket('ws://localhost:5000');
+// Connect to device stream
+const eventSource = new EventSource(
+  `${API_URL}/attendance/realtime/${deviceId}`,
+);
 
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  // Update UI with real-time attendance
+eventSource.onmessage = (event) => {
+  const log = JSON.parse(event.data);
+  // Update UI with new attendance
+};
+
+// Clean up on unmount
+eventSource.close();
+```
+
+**Background Monitoring Stream:**
+
+```javascript
+// Connect to background monitoring stream
+const eventSource = new EventSource(
+  `${API_URL}/attendance/background-monitor/stream`,
+);
+
+eventSource.onmessage = (event) => {
+  const log = JSON.parse(event.data);
+  // Add to Zustand store
+  addLog(log);
 };
 ```
+
+### State Persistence
+
+Background monitoring uses Zustand with localStorage persistence:
+
+- Logs persist across page navigation
+- Smart caching reduces database calls
+- Only fetches if cache is empty or > 5 minutes old
+- SSE updates add to existing logs without replacing
+- Automatic cleanup on logout
 
 ## 📱 Responsive Design
 
 ### Breakpoints
+
 - Mobile: < 640px
 - Tablet: 640px - 1024px
 - Desktop: > 1024px
 
 ### Mobile-First Approach
+
 ```jsx
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
   {/* Responsive grid */}
@@ -317,6 +406,7 @@ ws.onmessage = (event) => {
 ### Component Development
 
 1. **Create component**
+
    ```jsx
    // src/components/MyComponent.jsx
    export default function MyComponent({ prop1, prop2 }) {
@@ -325,10 +415,11 @@ ws.onmessage = (event) => {
    ```
 
 2. **Import and use**
+
    ```jsx
-   import MyComponent from './components/MyComponent';
-   
-   <MyComponent prop1="value" prop2={data} />
+   import MyComponent from "./components/MyComponent";
+
+   <MyComponent prop1="value" prop2={data} />;
    ```
 
 ### Adding New Pages
@@ -346,33 +437,31 @@ ws.onmessage = (event) => {
 ## 🎯 Best Practices
 
 ### Component Structure
+
 ```jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 export default function Component() {
   // Hooks
   const [state, setState] = useState(null);
-  
+
   // Effects
   useEffect(() => {
     // Side effects
   }, []);
-  
+
   // Handlers
   const handleClick = () => {
     // Logic
   };
-  
+
   // Render
-  return (
-    <div>
-      {/* JSX */}
-    </div>
-  );
+  return <div>{/* JSX */}</div>;
 }
 ```
 
 ### Error Handling
+
 ```jsx
 const [error, setError] = useState(null);
 const [loading, setLoading] = useState(false);
@@ -380,7 +469,7 @@ const [loading, setLoading] = useState(false);
 const fetchData = async () => {
   setLoading(true);
   setError(null);
-  
+
   try {
     const data = await api.getData();
     // Process data
@@ -393,10 +482,11 @@ const fetchData = async () => {
 ```
 
 ### Form Handling
+
 ```jsx
 const [formData, setFormData] = useState({
-  name: '',
-  email: '',
+  name: "",
+  email: "",
 });
 
 const handleChange = (e) => {
@@ -415,24 +505,30 @@ const handleSubmit = async (e) => {
 ## 🚀 Deployment
 
 ### Environment Variables
+
 Create `.env.production`:
+
 ```env
 VITE_API_URL=https://api.yourdomain.com/api/v1
 ```
 
 ### Build Process
+
 ```bash
 npm run build
 ```
 
 ### Static Hosting
+
 Deploy `dist/` folder to:
+
 - Vercel
 - Netlify
 - AWS S3 + CloudFront
 - Nginx/Apache
 
 ### Nginx Configuration
+
 ```nginx
 server {
     listen 80;
@@ -453,14 +549,18 @@ server {
 ## 🔧 Configuration
 
 ### Vite Configuration
+
 `vite.config.js` handles:
+
 - Dev server port
 - API proxy
 - Build options
 - Plugin configuration
 
 ### Tailwind Configuration
+
 `tailwind.config.js` customizes:
+
 - Color palette
 - Spacing scale
 - Breakpoints
@@ -468,21 +568,22 @@ server {
 
 ## 📦 Key Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| react | UI library |
+| Package          | Purpose             |
+| ---------------- | ------------------- |
+| react            | UI library          |
 | react-router-dom | Client-side routing |
-| zustand | State management |
-| axios | HTTP client |
-| tailwindcss | CSS framework |
-| recharts | Charts and graphs |
-| lucide-react | Icon library |
-| date-fns | Date utilities |
-| vite | Build tool |
+| zustand          | State management    |
+| axios            | HTTP client         |
+| tailwindcss      | CSS framework       |
+| recharts         | Charts and graphs   |
+| lucide-react     | Icon library        |
+| date-fns         | Date utilities      |
+| vite             | Build tool          |
 
 ## 🐛 Troubleshooting
 
 ### API Connection Issues
+
 ```bash
 # Check API URL in .env
 echo $VITE_API_URL
@@ -492,6 +593,7 @@ curl http://localhost:5000/api/v1/health
 ```
 
 ### Build Errors
+
 ```bash
 # Clear cache and reinstall
 rm -rf node_modules package-lock.json
@@ -502,6 +604,7 @@ rm -rf .vite
 ```
 
 ### Authentication Issues
+
 ```bash
 # Clear localStorage
 localStorage.clear();
@@ -512,28 +615,31 @@ localStorage.clear();
 ## 📈 Performance Optimization
 
 ### Code Splitting
-```jsx
-import { lazy, Suspense } from 'react';
 
-const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
+```jsx
+import { lazy, Suspense } from "react";
+
+const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
 
 <Suspense fallback={<LoadingSpinner />}>
   <EmployeesPage />
-</Suspense>
+</Suspense>;
 ```
 
 ### Memoization
+
 ```jsx
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 const filteredData = useMemo(() => {
-  return data.filter(item => item.status === 'active');
+  return data.filter((item) => item.status === "active");
 }, [data]);
 ```
 
 ## 🤝 Contributing
 
 ### Development Setup
+
 1. Fork repository
 2. Create feature branch
 3. Make changes
@@ -541,6 +647,7 @@ const filteredData = useMemo(() => {
 5. Submit pull request
 
 ### Code Style
+
 - Use functional components
 - Follow React hooks rules
 - Use TypeScript (future enhancement)

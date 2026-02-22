@@ -9,6 +9,8 @@ import EmployeesPage from "./pages/EmployeesPage";
 import DevicesPage from "./pages/DevicesPage";
 import AttendancePage from "./pages/AttendancePage";
 import RealTimeMonitorPage from "./pages/RealTimeMonitorPage";
+import BackgroundMonitorPage from "./pages/BackgroundMonitorPage";
+import ManualMonitorPage from "./pages/ManualMonitorPage";
 
 // Layout
 import MainLayout from "./components/layout/MainLayout";
@@ -57,6 +59,11 @@ function App() {
           <Route path="devices" element={<DevicesPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="realtime" element={<RealTimeMonitorPage />} />
+          <Route
+            path="background-monitor"
+            element={<BackgroundMonitorPage />}
+          />
+          <Route path="manual-monitor" element={<ManualMonitorPage />} />
         </Route>
 
         {/* Catch all */}

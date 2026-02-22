@@ -33,10 +33,24 @@ export default function DevicesPage() {
     location: "",
     model: "S900",
     description: "",
+    connectionType: "tcp",
+    admsConfig: {
+      serverUrl: "",
+      username: "",
+      password: "",
+      deviceSN: "",
+      protocol: "http",
+    },
+  });
+  const [backgroundMonitoring, setBackgroundMonitoring] = useState({
+    isRunning: false,
+    devicesCount: 0,
+    status: null,
   });
 
   useEffect(() => {
     fetchDevices();
+    fetchBackgroundMonitoringStatus();
   }, []);
 
   const fetchDevices = async () => {
@@ -73,13 +87,59 @@ export default function DevicesPage() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/devices/${selectedDevice.id}`, formData);
-      setShowEditModal(false);
-      resetForm();
-      fetchDevices();
-      alert("Device updated successfully!");
+      setLoading(true);
+
+      // Check if IP address or port is changing
+      const isConnectionUpdate =
+        formData.ipAddress !== selectedDevice.ipAddress ||
+        formData.port !== selectedDevice.port;
+
+      if (isConnectionUpdate) {
+        // Show specific message for connection updates
+        console.log(
+          "Connection settings changing, will test new connection...",
+        );
+      }
+
+      const response = await api.put(`/devices/${selectedDevice.id}`, formData);
+
+      if (response.success) {
+        setShowEditModal(false);
+        resetForm();
+        fetchDevices();
+
+        if (isConnectionUpdate) {
+          alert(
+            `✅ Device updated successfully!\n\n` +
+              `Connection settings have been updated and tested.\n` +
+              `Old IP: ${selectedDevice.ipAddress}:${selectedDevice.port}\n` +
+              `New IP: ${formData.ipAddress}:${formData.port}\n\n` +
+              `Background monitoring (if active) has been automatically restarted with the new settings.`,
+          );
+        } else {
+          alert("Device updated successfully!");
+        }
+      }
     } catch (error) {
-      alert(error.message || "Error updating device");
+      const errorMessage = error.message || "Error updating device";
+
+      // Provide specific error messages for connection issues
+      if (errorMessage.includes("Failed to connect")) {
+        alert(
+          `❌ Update Failed - Connection Test Failed\n\n` +
+            `Could not connect to device with the new settings:\n` +
+            `IP: ${formData.ipAddress}:${formData.port}\n\n` +
+            `Please verify:\n` +
+            `• Device is powered on and connected to network\n` +
+            `• IP address and port are correct\n` +
+            `• No firewall blocking the connection\n\n` +
+            `Error: ${errorMessage}`,
+        );
+      } else {
+        alert(`❌ Error updating device: ${errorMessage}`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -158,6 +218,14 @@ export default function DevicesPage() {
       location: device.location || "",
       model: device.model || "S900",
       description: device.description || "",
+      connectionType: device.connectionType || "tcp",
+      admsConfig: device.admsConfig || {
+        serverUrl: "",
+        username: "",
+        password: "",
+        deviceSN: "",
+        protocol: "http",
+      },
     });
     setShowEditModal(true);
   };
@@ -170,8 +238,48 @@ export default function DevicesPage() {
       location: "",
       model: "S900",
       description: "",
+      connectionType: "tcp",
+      admsConfig: {
+        serverUrl: "",
+        username: "",
+        password: "",
+        deviceSN: "",
+        protocol: "http",
+      },
     });
     setSelectedDevice(null);
+  };
+
+  // Background Monitoring Functions
+  const fetchBackgroundMonitoringStatus = async () => {
+    try {
+      const response = await api.get("/attendance/background-monitor/status");
+      setBackgroundMonitoring(response.data);
+    } catch (error) {
+      console.error("Error fetching background monitoring status:", error);
+    }
+  };
+
+  const toggleBackgroundMonitoring = async () => {
+    try {
+      const endpoint = backgroundMonitoring.isRunning
+        ? "/attendance/background-monitor/stop"
+        : "/attendance/background-monitor/start";
+
+      const response = await api.post(endpoint);
+
+      if (response.success) {
+        await fetchBackgroundMonitoringStatus();
+        alert(response.message);
+      } else {
+        alert("Error: " + response.message);
+      }
+    } catch (error) {
+      alert(
+        "Error toggling background monitoring: " +
+          (error.message || "Unknown error"),
+      );
+    }
   };
 
   const getStatusColor = (device) => {
@@ -183,6 +291,27 @@ export default function DevicesPage() {
   const getStatusText = (device) => {
     if (!device.isOnline) return "Offline";
     return device.status === "active" ? "Online" : "Inactive";
+  };
+
+  // Connection Type Functions
+  const getConnectionTypeDisplay = (connectionType) => {
+    const types = {
+      tcp: "TCP/IP (WiFi)",
+      wifi: "WiFi (TCP/IP)",
+      lan: "LAN (Ethernet)",
+      adms: "ADMS (ZKTeco Server)",
+    };
+    return types[connectionType] || connectionType?.toUpperCase() || "TCP/IP";
+  };
+
+  const getConnectionTypeColor = (connectionType) => {
+    const colors = {
+      tcp: "bg-blue-100 text-blue-800",
+      wifi: "bg-blue-100 text-blue-800",
+      lan: "bg-green-100 text-green-800",
+      adms: "bg-purple-100 text-purple-800",
+    };
+    return colors[connectionType] || "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -284,8 +413,16 @@ export default function DevicesPage() {
                     <span>{device.location}</span>
                   </div>
                 )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Database className="w-4 h-4 text-gray-400" />
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getConnectionTypeColor(device.connectionType)}`}
+                  >
+                    {getConnectionTypeDisplay(device.connectionType)}
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Database className="w-4 h-4" />
+                  <Monitor className="w-4 h-4" />
                   <span>Model: {device.model || "S900"}</span>
                 </div>
                 {device.lastSeenAt && (
@@ -459,6 +596,163 @@ export default function DevicesPage() {
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              {/* Connection Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Connection Type *
+                </label>
+                <select
+                  value={formData.connectionType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, connectionType: e.target.value })
+                  }
+                  className="input"
+                >
+                  <option value="tcp">TCP/IP (WiFi/LAN)</option>
+                  <option value="lan">LAN (Ethernet)</option>
+                  <option value="adms">ADMS (ZKTeco Server)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.connectionType === "tcp" &&
+                    "Direct WiFi or LAN connection to device"}
+                  {formData.connectionType === "lan" &&
+                    "Wired Ethernet connection"}
+                  {formData.connectionType === "adms" &&
+                    "Connect via ZKTeco ADMS server (cloud/remote)"}
+                </p>
+              </div>
+
+              {/* ADMS Configuration (only show when ADMS is selected) */}
+              {formData.connectionType === "adms" && (
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h3 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    ADMS Server Configuration
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ADMS Server URL *
+                      </label>
+                      <input
+                        type="url"
+                        required={formData.connectionType === "adms"}
+                        value={formData.admsConfig.serverUrl}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            admsConfig: {
+                              ...formData.admsConfig,
+                              serverUrl: e.target.value,
+                            },
+                          })
+                        }
+                        className="input"
+                        placeholder="https://your-domain.com/adms"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Username *
+                        </label>
+                        <input
+                          type="text"
+                          required={formData.connectionType === "adms"}
+                          value={formData.admsConfig.username}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              admsConfig: {
+                                ...formData.admsConfig,
+                                username: e.target.value,
+                              },
+                            })
+                          }
+                          className="input"
+                          placeholder="admin"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Password *
+                        </label>
+                        <input
+                          type="password"
+                          required={formData.connectionType === "adms"}
+                          value={formData.admsConfig.password}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              admsConfig: {
+                                ...formData.admsConfig,
+                                password: e.target.value,
+                              },
+                            })
+                          }
+                          className="input"
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Device Serial Number *
+                      </label>
+                      <input
+                        type="text"
+                        required={formData.connectionType === "adms"}
+                        value={formData.admsConfig.deviceSN}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            admsConfig: {
+                              ...formData.admsConfig,
+                              deviceSN: e.target.value,
+                            },
+                          })
+                        }
+                        className="input"
+                        placeholder="DGD9190019050"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Protocol
+                      </label>
+                      <select
+                        value={formData.admsConfig.protocol}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            admsConfig: {
+                              ...formData.admsConfig,
+                              protocol: e.target.value,
+                            },
+                          })
+                        }
+                        className="input"
+                      >
+                        <option value="http">HTTP</option>
+                        <option value="https">HTTPS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 ADMS Benefits:</strong> Connect devices
+                      remotely through your hosted backend. Devices anywhere in
+                      the world can connect to your domain instantly!
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

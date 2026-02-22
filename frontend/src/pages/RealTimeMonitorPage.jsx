@@ -6,6 +6,10 @@ import {
   Clock,
   User,
   Download,
+  Activity,
+  Monitor,
+  Wifi,
+  Database,
 } from "lucide-react";
 import api from "../services/api";
 
@@ -16,12 +20,24 @@ export default function RealTimeMonitorPage() {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [realtimeLogs, setRealtimeLogs] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [backgroundMonitoring, setBackgroundMonitoring] = useState({
+    isRunning: false,
+    devicesCount: 0,
+    status: null,
+  });
+  const [backgroundLogs, setBackgroundLogs] = useState([]);
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
     fetchDevices();
+    fetchBackgroundMonitoringStatus();
+
+    // Poll background monitoring status every 10 seconds
+    const statusInterval = setInterval(fetchBackgroundMonitoringStatus, 10000);
+
     return () => {
       stopMonitoring();
+      clearInterval(statusInterval);
     };
   }, []);
 
@@ -31,6 +47,63 @@ export default function RealTimeMonitorPage() {
       setDevices(response.data || []);
     } catch (error) {
       console.error("Error fetching devices:", error);
+    }
+  };
+
+  // Background Monitoring Functions
+  const fetchBackgroundMonitoringStatus = async () => {
+    try {
+      const response = await api.get("/attendance/background-monitor/status");
+      setBackgroundMonitoring(response.data);
+
+      // If background monitoring is running, fetch recent logs
+      if (response.data.isRunning) {
+        fetchRecentBackgroundLogs();
+      }
+    } catch (error) {
+      console.error("Error fetching background monitoring status:", error);
+    }
+  };
+
+  const fetchRecentBackgroundLogs = async () => {
+    try {
+      // Get recent attendance logs (last 50)
+      const response = await api.get("/attendance/logs", {
+        params: { limit: 50, page: 1 },
+      });
+
+      if (response.data && response.data.logs) {
+        // Filter logs from the last 10 minutes for "live" feel
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const recentLogs = response.data.logs.filter(
+          (log) => new Date(log.timestamp) > tenMinutesAgo,
+        );
+        setBackgroundLogs(recentLogs);
+      }
+    } catch (error) {
+      console.error("Error fetching recent background logs:", error);
+    }
+  };
+
+  const toggleBackgroundMonitoring = async () => {
+    try {
+      const endpoint = backgroundMonitoring.isRunning
+        ? "/attendance/background-monitor/stop"
+        : "/attendance/background-monitor/start";
+
+      const response = await api.post(endpoint);
+
+      if (response.success) {
+        await fetchBackgroundMonitoringStatus();
+        alert(response.message);
+      } else {
+        alert("Error: " + response.message);
+      }
+    } catch (error) {
+      alert(
+        "Error toggling background monitoring: " +
+          (error.message || "Unknown error"),
+      );
     }
   };
 
@@ -200,8 +273,141 @@ export default function RealTimeMonitorPage() {
         </p>
       </div>
 
-      {/* Control Panel */}
+      {/* Background Monitoring Status */}
+      <div className="card bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Activity
+              className={`w-6 h-6 ${backgroundMonitoring.isRunning ? "text-green-600" : "text-gray-400"}`}
+            />
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Background Monitoring
+              </h3>
+              <p className="text-sm text-gray-600">
+                {backgroundMonitoring.isRunning
+                  ? `Actively monitoring ${backgroundMonitoring.devicesCount} devices`
+                  : "Background monitoring is inactive"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                backgroundMonitoring.isRunning
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {backgroundMonitoring.isRunning ? "Active" : "Inactive"}
+            </div>
+            <button
+              onClick={toggleBackgroundMonitoring}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                backgroundMonitoring.isRunning
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {backgroundMonitoring.isRunning ? "Stop" : "Start"} Background
+            </button>
+          </div>
+        </div>
+
+        {/* Background Monitoring Feed */}
+        {backgroundMonitoring.isRunning && (
+          <div className="mt-4 pt-4 border-t border-indigo-200">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900">
+                Recent Background Activity
+              </h4>
+              <span className="text-sm text-gray-500">
+                {backgroundLogs.length} logs in last 10 minutes
+              </span>
+            </div>
+
+            {backgroundLogs.length === 0 ? (
+              <div className="text-center py-6">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-500">No recent activity</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {backgroundLogs.slice(0, 10).map((log, index) => (
+                  <div
+                    key={log.id || index}
+                    className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm text-gray-900">
+                          {log.employee?.name || "Unknown Employee"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {log.employee?.code} •{" "}
+                          {log.employee?.department || "No Department"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-900">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {log.device?.name || "Unknown Device"}
+                      </div>
+                      {log.direction && (
+                        <div
+                          className={`text-xs px-2 py-1 rounded-full mt-1 ${
+                            log.direction.includes("in")
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {log.direction}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {backgroundMonitoring.status?.devices && (
+              <div className="mt-3 pt-3 border-t border-indigo-200">
+                <p className="text-xs text-gray-600 mb-2">Monitored Devices:</p>
+                <div className="flex flex-wrap gap-2">
+                  {backgroundMonitoring.status.devices.map((device) => (
+                    <span
+                      key={device.id}
+                      className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs flex items-center gap-1"
+                    >
+                      <Monitor className="w-3 h-3" />
+                      {device.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Manual Monitoring Control Panel */}
       <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Radio className="w-5 h-5 text-blue-600" />
+          <h3 className="font-semibold text-gray-900">
+            Manual Live Monitoring
+          </h3>
+          <span className="text-sm text-gray-500">
+            (Session-based monitoring)
+          </span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -286,51 +492,71 @@ export default function RealTimeMonitorPage() {
       </div>
 
       {/* Statistics */}
-      {isMonitoring && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="card bg-blue-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Live Logs</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {realtimeLogs.length}
-                </p>
-              </div>
-              <Radio className="w-8 h-8 text-blue-600 animate-pulse" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Background Monitoring Stats */}
+        <div className="card bg-indigo-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Background Logs</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                {backgroundLogs.length}
+              </p>
+              <p className="text-xs text-gray-500">Last 10 minutes</p>
             </div>
-          </div>
-
-          <div className="card bg-green-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Check Ins</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {
-                    realtimeLogs.filter(
-                      (l) =>
-                        l.direction === "check-in" ||
-                        l.direction === "break-in",
-                    ).length
-                  }
-                </p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-
-          <div className="card bg-purple-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Unique Employees</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {new Set(realtimeLogs.map((l) => l.employee?.id)).size}
-                </p>
-              </div>
-              <User className="w-8 h-8 text-purple-600" />
-            </div>
+            <Activity
+              className={`w-8 h-8 ${backgroundMonitoring.isRunning ? "text-indigo-600 animate-pulse" : "text-gray-400"}`}
+            />
           </div>
         </div>
-      )}
+
+        {/* Manual Monitoring Stats */}
+        {isMonitoring && (
+          <>
+            <div className="card bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Live Session Logs</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {realtimeLogs.length}
+                  </p>
+                  <p className="text-xs text-gray-500">This session</p>
+                </div>
+                <Radio className="w-8 h-8 text-blue-600 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="card bg-green-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Session Check Ins</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {
+                      realtimeLogs.filter(
+                        (l) =>
+                          l.direction === "check-in" ||
+                          l.direction === "break-in",
+                      ).length
+                    }
+                  </p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+
+            <div className="card bg-purple-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Unique Employees</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {new Set(realtimeLogs.map((l) => l.employee?.id)).size}
+                  </p>
+                </div>
+                <User className="w-8 h-8 text-purple-600" />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Real-time Logs */}
       <div className="card">

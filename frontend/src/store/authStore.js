@@ -1,14 +1,15 @@
-import { create } from 'zustand';
-import { authAPI } from '../services/api';
+import { create } from "zustand";
+import { authAPI } from "../services/api";
+import useBackgroundMonitorStore from "./backgroundMonitorStore";
 
 /**
  * Authentication Store
  * Manages user authentication state
  */
 export const useAuthStore = create((set) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  user: JSON.parse(localStorage.getItem("user") || "null"),
+  token: localStorage.getItem("token"),
+  isAuthenticated: !!localStorage.getItem("token"),
   isLoading: false,
   error: null,
 
@@ -21,8 +22,8 @@ export const useAuthStore = create((set) => ({
       const response = await authAPI.login(credentials);
       const { user, token } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       set({
         user,
@@ -36,7 +37,7 @@ export const useAuthStore = create((set) => ({
     } catch (error) {
       set({
         isLoading: false,
-        error: error.message || 'Login failed',
+        error: error.message || "Login failed",
       });
       return { success: false, error: error.message };
     }
@@ -46,8 +47,12 @@ export const useAuthStore = create((set) => ({
    * Logout user
    */
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // Clear background monitor store on logout
+    const { clearLogs } = useBackgroundMonitorStore.getState();
+    clearLogs();
 
     set({
       user: null,
@@ -61,7 +66,7 @@ export const useAuthStore = create((set) => ({
    * Verify token
    */
   verifyAuth: async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       set({ isAuthenticated: false, user: null });
       return false;
@@ -72,8 +77,8 @@ export const useAuthStore = create((set) => ({
       return true;
     } catch (error) {
       set({ isAuthenticated: false, user: null, token: null });
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       return false;
     }
   },
@@ -85,13 +90,13 @@ export const useAuthStore = create((set) => ({
     try {
       const response = await authAPI.getProfile();
       const user = response.data;
-      
-      localStorage.setItem('user', JSON.stringify(user));
+
+      localStorage.setItem("user", JSON.stringify(user));
       set({ user });
-      
+
       return user;
     } catch (error) {
-      console.error('Failed to get profile:', error);
+      console.error("Failed to get profile:", error);
       return null;
     }
   },

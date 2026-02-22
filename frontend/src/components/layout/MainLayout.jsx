@@ -7,6 +7,7 @@ import {
   Monitor,
   Clock,
   Radio,
+  Activity,
   LogOut,
   Menu,
   X,
@@ -28,7 +29,8 @@ export default function MainLayout() {
     { name: "Employees", href: "/employees", icon: Users },
     { name: "Devices", href: "/devices", icon: Monitor },
     { name: "Attendance", href: "/attendance", icon: Clock },
-    { name: "Live Monitor", href: "/realtime", icon: Radio },
+    { name: "Background Monitor", href: "/background-monitor", icon: Activity },
+    { name: "Manual Monitor", href: "/manual-monitor", icon: Radio },
   ];
 
   return (

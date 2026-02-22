@@ -355,14 +355,25 @@ export default function AttendancePage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Start Date
             </label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) =>
-                setFilters({ ...filters, startDate: e.target.value })
-              }
-              className="input"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) =>
+                  setFilters({ ...filters, startDate: e.target.value })
+                }
+                className="input flex-1"
+              />
+              <button
+                onClick={() => {
+                  const today = new Date().toISOString().split("T")[0];
+                  setFilters({ ...filters, startDate: today, endDate: today });
+                }}
+                className="px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              >
+                Today
+              </button>
+            </div>
           </div>
 
           <div>

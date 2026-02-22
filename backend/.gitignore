@@ -36,3 +36,16 @@ build/
 
 # Drizzle
 drizzle/migrations/
+
+# Test and utility scripts
+check-*.js
+test-*.js
+fix-*.js
+demo-*.js
+start-*.js
+quick-*.js
+verify-*.js
+update-*.js
+find-*.js
+*.sql
+!drizzle/**/*.sql

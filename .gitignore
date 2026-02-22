@@ -29,3 +29,8 @@ build/
 # Database
 *.db
 *.sqlite
+
+# Documentation (except README.md)
+*.md
+!README.md
+!**/README.md

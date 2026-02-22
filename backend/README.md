@@ -5,6 +5,7 @@ Production-ready backend for ZKTeco S900 biometric device integration with cloud
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Runtime**: Node.js (LTS)
 - **Framework**: Express.js
 - **Database**: Supabase PostgreSQL
@@ -44,6 +45,7 @@ backend/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ LTS
 - PostgreSQL database (Supabase recommended)
 - ZKTeco S900 device on network
@@ -52,33 +54,38 @@ backend/
 ### Installation
 
 1. **Clone and navigate to backend**
+
    ```bash
    cd backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 4. **Set up database**
+
    ```bash
    # Generate migration files
    npm run db:generate
-   
+
    # Run migrations
    npm run db:migrate
    ```
 
 5. **Create initial admin user**
-   
+
    Connect to your database and run:
+
    ```sql
    INSERT INTO users (username, email, password_hash, full_name, role, status)
    VALUES (
@@ -92,30 +99,35 @@ backend/
    ```
 
    Or use bcryptjs to hash a password:
+
    ```javascript
-   import bcrypt from 'bcryptjs';
-   const hash = await bcrypt.hash('your-password', 10);
+   import bcrypt from "bcryptjs";
+   const hash = await bcrypt.hash("your-password", 10);
    console.log(hash);
    ```
 
 ### Running the Application
 
 **Development mode:**
+
 ```bash
 npm run dev
 ```
 
 **Production mode:**
+
 ```bash
 npm start
 ```
 
 **Run background worker:**
+
 ```bash
 npm run worker
 ```
 
 **Database tools:**
+
 ```bash
 # Open Drizzle Studio (GUI)
 npm run db:studio
@@ -130,6 +142,7 @@ npm run db:migrate
 ## 📡 API Documentation
 
 ### Base URL
+
 ```
 http://localhost:5000/api/v1
 ```
@@ -137,6 +150,7 @@ http://localhost:5000/api/v1
 ### Authentication
 
 All protected routes require JWT token in header:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -144,6 +158,7 @@ Authorization: Bearer <token>
 ### Endpoints
 
 #### **Auth**
+
 - `POST /auth/login` - User login
 - `POST /auth/register` - Register user (admin only)
 - `GET /auth/profile` - Get current user
@@ -151,6 +166,7 @@ Authorization: Bearer <token>
 - `GET /auth/verify` - Verify token
 
 #### **Employees**
+
 - `GET /employees` - List employees (with pagination)
 - `GET /employees/:id` - Get employee by ID
 - `POST /employees` - Create employee
@@ -160,6 +176,7 @@ Authorization: Bearer <token>
 - `POST /employees/bulk-import` - Bulk import
 
 #### **Devices**
+
 - `GET /devices` - List devices
 - `GET /devices/:id` - Get device by ID
 - `POST /devices` - Register device
@@ -171,6 +188,7 @@ Authorization: Bearer <token>
 - `GET /devices/stats` - Connection statistics
 
 #### **Attendance**
+
 - `GET /attendance/logs` - Get attendance logs
 - `GET /attendance/logs/:id` - Get log by ID
 - `GET /attendance/employee/:id/summary` - Employee summary
@@ -178,20 +196,29 @@ Authorization: Bearer <token>
 - `GET /attendance/sync/status` - Sync status
 - `GET /attendance/sync/statistics` - Sync statistics
 - `GET /attendance/dashboard` - Dashboard stats
+- `GET /attendance/realtime/:deviceId` - Real-time SSE stream (single device)
+- `GET /attendance/realtime-all` - Real-time SSE stream (all devices)
+- `GET /attendance/background-monitor/status` - Background monitoring status
+- `POST /attendance/background-monitor/start` - Start background monitoring
+- `POST /attendance/background-monitor/stop` - Stop background monitoring
+- `GET /attendance/background-monitor/stream` - Background monitoring SSE stream
 
 ### Query Parameters
 
 **Pagination:**
+
 ```
 ?page=1&limit=50
 ```
 
 **Filtering employees:**
+
 ```
 ?search=john&department=IT&status=active
 ```
 
 **Filtering attendance:**
+
 ```
 ?employeeId=uuid&deviceId=uuid&startDate=2024-01-01&endDate=2024-01-31&direction=in
 ```
@@ -199,12 +226,14 @@ Authorization: Bearer <token>
 ## 🔐 Security
 
 ### Authentication & Authorization
+
 - JWT-based authentication
 - Role-based access control (Admin, Manager, Viewer)
 - Password hashing with bcryptjs
 - Token expiration and refresh
 
 ### Security Measures
+
 - Helmet.js for security headers
 - Rate limiting on API endpoints
 - Input validation with Joi
@@ -214,19 +243,21 @@ Authorization: Bearer <token>
 
 ### Roles & Permissions
 
-| Role    | Permissions |
-|---------|-------------|
-| Admin   | Full access - all CRUD operations |
+| Role    | Permissions                                 |
+| ------- | ------------------------------------------- |
+| Admin   | Full access - all CRUD operations           |
 | Manager | Read all, Create/Update employees & devices |
-| Viewer  | Read-only access |
+| Viewer  | Read-only access                            |
 
 ## 🔄 ZKTeco Device Integration
 
 ### Supported Devices
+
 - ZKTeco S900 (tested)
 - Compatible with most ZKTeco devices using TCP/IP
 
 ### Connection Configuration
+
 ```javascript
 {
   ip: "192.168.1.100",      // Device IP address
@@ -236,19 +267,23 @@ Authorization: Bearer <token>
 ```
 
 ### Device Operations
+
 - Connect/disconnect to devices
 - Fetch attendance logs
 - Get device information
 - Retrieve registered users
 - Test connection health
 - Auto-reconnection with retry logic
+- Real-time monitoring via SSE
+- Background monitoring (24/7 capture)
 
 ### Attendance Log Format
+
 ```javascript
 {
   deviceUserId: 1,           // User ID on device
   timestamp: Date,           // Attendance time
-  direction: "in" | "out",   // Check-in or out
+  direction: "in" | "out",   // Check-in or out (optional)
   verifyMode: 1,             // Verification method
   deviceIp: "192.168.1.100",
   devicePort: 4370,
@@ -256,9 +291,29 @@ Authorization: Bearer <token>
 }
 ```
 
-## 📊 Background Sync Worker
+### Real-Time Features
 
-### Features
+**Manual Real-Time Monitoring:**
+
+- Connect to device and stream live attendance
+- SSE endpoint: `GET /api/v1/attendance/realtime/:deviceId`
+- Requires active frontend connection
+- Stops when connection closes
+
+**Background Monitoring:**
+
+- Runs 24/7 on backend (independent of frontend)
+- Captures attendance even when app is closed
+- SSE endpoint: `GET /api/v1/attendance/background-monitor/stream`
+- Persistent state with automatic reconnection
+- Logs stored in database for historical access
+
+## 📊 Background Services
+
+### Background Sync Worker
+
+**Features:**
+
 - Automatic periodic syncing (configurable interval)
 - Syncs all active devices
 - Deduplication of records
@@ -266,14 +321,16 @@ Authorization: Bearer <token>
 - Comprehensive sync logging
 - Graceful shutdown
 
-### Configuration
+**Configuration:**
+
 ```env
 ENABLE_AUTO_SYNC=true       # Enable/disable auto-sync
 DEVICE_SYNC_INTERVAL=5      # Sync every N minutes
 SYNC_BATCH_SIZE=1000        # Records per batch
 ```
 
-### Running the Worker
+**Running the Worker:**
+
 ```bash
 # Start worker
 npm run worker
@@ -282,7 +339,8 @@ npm run worker
 # Can run multiple instances for redundancy
 ```
 
-### Sync Process
+**Sync Process:**
+
 1. Query all active devices
 2. Connect to each device
 3. Fetch attendance logs since last sync
@@ -291,9 +349,38 @@ npm run worker
 6. Update device sync timestamps
 7. Log sync results
 
+### Background Monitoring Service
+
+**Features:**
+
+- 24/7 attendance capture (runs on backend)
+- Works independently of frontend
+- Automatic device reconnection
+- Real-time event emission via EventEmitter
+- SSE streaming to connected clients
+- Database persistence for all logs
+
+**How it works:**
+
+1. Service starts monitoring all active devices
+2. Continuously polls devices for new attendance
+3. Validates and sanitizes timestamps
+4. Maps device users to employees
+5. Saves logs to database
+6. Emits events for SSE clients
+7. Handles device disconnections gracefully
+
+**API Endpoints:**
+
+- `POST /attendance/background-monitor/start` - Start monitoring
+- `POST /attendance/background-monitor/stop` - Stop monitoring
+- `GET /attendance/background-monitor/status` - Get status
+- `GET /attendance/background-monitor/stream` - SSE stream
+
 ## 🗄️ Database Schema
 
 ### Tables
+
 - **employees** - Employee information
 - **devices** - ZKTeco device registry
 - **attendance_logs** - Attendance records
@@ -302,12 +389,15 @@ npm run worker
 - **audit_logs** - System audit trail
 
 ### Key Relationships
+
 - Attendance logs → Employee (many-to-one)
 - Attendance logs → Device (many-to-one)
 - Sync logs → Device (many-to-one)
 
 ### Indexes
+
 Optimized indexes on:
+
 - Employee lookups (code, device_user_id)
 - Attendance queries (employee_id, timestamp, device_id)
 - Deduplication (unique composite index)
@@ -315,17 +405,20 @@ Optimized indexes on:
 ## 📝 Logging
 
 ### Log Levels
+
 - `error` - Error messages
 - `warn` - Warning messages
 - `info` - Informational messages
 - `debug` - Debug messages (development)
 
 ### Log Files
+
 - `logs/error.log` - Error logs only
 - `logs/combined.log` - All logs
 - Console output in development
 
 ### Log Format
+
 ```json
 {
   "timestamp": "2024-01-15 10:30:45",
@@ -365,21 +458,22 @@ curl http://localhost:5000/api/v1/employees \
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment | development |
-| `PORT` | Server port | 5000 |
-| `DATABASE_URL` | PostgreSQL connection | required |
-| `JWT_SECRET` | JWT secret key | required |
-| `JWT_EXPIRES_IN` | Token expiration | 7d |
-| `DEVICE_SYNC_INTERVAL` | Sync interval (min) | 5 |
-| `DEVICE_CONNECTION_TIMEOUT` | Device timeout (ms) | 5000 |
-| `RATE_LIMIT_MAX_REQUESTS` | Rate limit | 100 |
-| `CORS_ORIGIN` | Allowed origins | localhost:3000 |
+| Variable                    | Description           | Default        |
+| --------------------------- | --------------------- | -------------- |
+| `NODE_ENV`                  | Environment           | development    |
+| `PORT`                      | Server port           | 5000           |
+| `DATABASE_URL`              | PostgreSQL connection | required       |
+| `JWT_SECRET`                | JWT secret key        | required       |
+| `JWT_EXPIRES_IN`            | Token expiration      | 7d             |
+| `DEVICE_SYNC_INTERVAL`      | Sync interval (min)   | 5              |
+| `DEVICE_CONNECTION_TIMEOUT` | Device timeout (ms)   | 5000           |
+| `RATE_LIMIT_MAX_REQUESTS`   | Rate limit            | 100            |
+| `CORS_ORIGIN`               | Allowed origins       | localhost:3000 |
 
 ## 🚀 Deployment
 
 ### Production Checklist
+
 - [ ] Set `NODE_ENV=production`
 - [ ] Use strong `JWT_SECRET`
 - [ ] Configure proper `DATABASE_URL`
@@ -392,6 +486,7 @@ curl http://localhost:5000/api/v1/employees \
 - [ ] Configure firewall rules
 
 ### PM2 (Process Manager)
+
 ```bash
 # Install PM2
 npm install -g pm2
@@ -410,6 +505,7 @@ pm2 startup
 ```
 
 ### Docker (Optional)
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -423,11 +519,13 @@ CMD ["node", "src/index.js"]
 ## 📈 Monitoring
 
 ### Health Check
+
 ```bash
 GET /api/v1/health
 ```
 
 ### Metrics to Monitor
+
 - API response times
 - Database connection pool
 - Sync success rate
@@ -438,6 +536,7 @@ GET /api/v1/health
 ## 🐛 Troubleshooting
 
 ### Device Connection Issues
+
 ```bash
 # Check device is reachable
 ping <device-ip>
@@ -453,6 +552,7 @@ tail -f logs/combined.log | grep "device"
 ```
 
 ### Sync Issues
+
 ```bash
 # Check sync status
 GET /api/v1/attendance/sync/status
@@ -468,6 +568,7 @@ tail -f logs/combined.log | grep "sync"
 ```
 
 ### Database Issues
+
 ```bash
 # Test connection
 node -e "import('./src/database/index.js').then(d => d.testConnection())"
@@ -486,6 +587,7 @@ npm run db:studio
 ## 🤝 Support
 
 For issues or questions:
+
 1. Check logs: `logs/error.log`
 2. Verify configuration: `.env`
 3. Test device connectivity

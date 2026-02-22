@@ -11,6 +11,7 @@ A modern, full-stack attendance management system with real-time monitoring capa
 ### Core Functionality
 
 - **Real-Time Attendance Monitoring** - Live feed of attendance events with SSE (Server-Sent Events)
+- **Background Monitoring** - 24/7 attendance capture with persistent state management
 - **Employee Management** - Complete CRUD operations with bulk import from devices
 - **Device Management** - Register, test, and manage multiple ZKTeco devices
 - **Attendance Logs** - Comprehensive filtering, search, and CSV export
@@ -20,6 +21,8 @@ A modern, full-stack attendance management system with real-time monitoring capa
 ### Technical Highlights
 
 - JWT-based authentication with role-based access control
+- Server-Sent Events (SSE) for real-time updates
+- Zustand state management with localStorage persistence
 - Automatic background sync worker with configurable intervals
 - Batch operations for performance optimization
 - RESTful API with comprehensive error handling
@@ -153,7 +156,8 @@ Go to Employees page and click "Sync from Device" to import all users from your 
 
 - **Dashboard**: View today's statistics and recent logs
 - **Attendance Logs**: Filter, search, and export attendance records
-- **Live Monitor**: Real-time attendance feed with instant notifications
+- **Real-Time Monitor**: Live attendance feed with instant notifications
+- **Background Monitor**: 24/7 attendance capture with persistent feed (works even when app is closed)
 
 ### 4. Background Sync
 
@@ -209,6 +213,10 @@ GET  /api/v1/attendance/dashboard
 POST /api/v1/attendance/sync
 GET  /api/v1/attendance/realtime/:deviceId (SSE)
 GET  /api/v1/attendance/realtime-all (SSE)
+GET  /api/v1/attendance/background-monitor/status
+POST /api/v1/attendance/background-monitor/start
+POST /api/v1/attendance/background-monitor/stop
+GET  /api/v1/attendance/background-monitor/stream (SSE)
 ```
 
 ## Deployment
@@ -352,6 +360,14 @@ pm2 logs attendance-worker
 - Environment variable protection
 - Rate limiting on API endpoints
 
+## Recent Updates
+
+- ✅ Background monitoring with 24/7 attendance capture
+- ✅ Server-Sent Events (SSE) for real-time updates
+- ✅ Zustand state management with persistence
+- ✅ Optimized database queries with smart caching
+- ✅ Enhanced timestamp validation and sanitization
+
 ## Roadmap
 
 - [ ] Mobile app (React Native)
@@ -360,7 +376,7 @@ pm2 logs attendance-worker
 - [ ] Shift management
 - [ ] Leave management integration
 - [ ] Multi-tenant SaaS version
-- [ ] Biometric template backup
+- [ ] Local agent architecture for multi-location deployment
 
 ## License
 

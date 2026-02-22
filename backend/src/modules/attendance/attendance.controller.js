@@ -2,6 +2,7 @@ import { eq, and, gte, lte, desc, sql, isNull } from "drizzle-orm";
 import db from "../../database/index.js";
 import { attendanceLogs, employees, devices } from "../../database/schema.js";
 import syncService from "../../services/sync.service.js";
+import backgroundMonitorService from "../../services/simpleBackgroundMonitor.service.js";
 import logger from "../../utils/logger.js";
 
 /**
@@ -38,11 +39,33 @@ export const getAttendanceLogs = async (req, res, next) => {
     }
 
     if (startDate) {
-      conditions.push(gte(attendanceLogs.timestamp, new Date(startDate)));
+      // Convert to start of day (00:00:00) - use local timezone
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(0, 0, 0, 0);
+
+      if (!isNaN(startDateTime.getTime())) {
+        conditions.push(gte(attendanceLogs.timestamp, startDateTime));
+        logger.info(
+          `Date filter - Start: ${startDate} -> ${startDateTime.toISOString()}`,
+        );
+      } else {
+        logger.warn(`Invalid startDate provided: ${startDate}`);
+      }
     }
 
     if (endDate) {
-      conditions.push(lte(attendanceLogs.timestamp, new Date(endDate)));
+      // Convert to end of day (23:59:59.999) - use local timezone
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+
+      if (!isNaN(endDateTime.getTime())) {
+        conditions.push(lte(attendanceLogs.timestamp, endDateTime));
+        logger.info(
+          `Date filter - End: ${endDate} -> ${endDateTime.toISOString()}`,
+        );
+      } else {
+        logger.warn(`Invalid endDate provided: ${endDate}`);
+      }
     }
 
     if (direction) {
@@ -85,10 +108,22 @@ export const getAttendanceLogs = async (req, res, next) => {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .then((rows) => parseInt(rows[0].count));
 
+    // Sanitize logs - filter out entries with invalid timestamps
+    const sanitizedLogs = logs.filter((log) => {
+      const timestamp = new Date(log.timestamp);
+      if (isNaN(timestamp.getTime())) {
+        logger.warn(
+          `Found log with invalid timestamp: ${log.id}, timestamp: ${log.timestamp}`,
+        );
+        return false;
+      }
+      return true;
+    });
+
     res.json({
       success: true,
       data: {
-        logs,
+        logs: sanitizedLogs,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -635,5 +670,227 @@ export const startRealTimeMonitoring = async (req, res, next) => {
       `data: ${JSON.stringify({ type: "error", message: error.message })}\n\n`,
     );
     res.end();
+  }
+};
+
+/**
+ * Start background monitoring
+ */
+export const startBackgroundMonitoring = async (req, res, next) => {
+  try {
+    const result = await backgroundMonitorService.startGlobalMonitoring();
+
+    if (result.success) {
+      logger.info("Background monitoring started via API");
+      res.json({
+        success: true,
+        message: result.message,
+        data: {
+          devicesCount: result.devices,
+          status: backgroundMonitorService.getStatus(),
+        },
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+  } catch (error) {
+    logger.error("Error starting background monitoring:", error);
+    next(error);
+  }
+};
+
+/**
+ * Stop background monitoring
+ */
+export const stopBackgroundMonitoring = async (req, res, next) => {
+  try {
+    const result = await backgroundMonitorService.stopGlobalMonitoring();
+
+    logger.info("Background monitoring stopped via API");
+    res.json({
+      success: true,
+      message: result.message,
+      data: {
+        status: backgroundMonitorService.getStatus(),
+      },
+    });
+  } catch (error) {
+    logger.error("Error stopping background monitoring:", error);
+    next(error);
+  }
+};
+
+/**
+ * Get background monitoring status
+ */
+export const getBackgroundMonitoringStatus = async (req, res, next) => {
+  try {
+    const status = backgroundMonitorService.getStatus();
+
+    res.json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    logger.error("Error getting monitoring status:", error);
+    next(error);
+  }
+};
+
+/**
+ * Update background monitoring settings
+ */
+export const updateBackgroundMonitoringSettings = async (req, res, next) => {
+  try {
+    const { pollInterval, maxRetries, retryDelay } = req.body;
+
+    const newSettings = {};
+    if (pollInterval) newSettings.pollInterval = parseInt(pollInterval);
+    if (maxRetries) newSettings.maxRetries = parseInt(maxRetries);
+    if (retryDelay) newSettings.retryDelay = parseInt(retryDelay);
+
+    backgroundMonitorService.updateSettings(newSettings);
+
+    res.json({
+      success: true,
+      message: "Settings updated successfully",
+      data: {
+        settings: backgroundMonitorService.getStatus().settings,
+      },
+    });
+  } catch (error) {
+    logger.error("Error updating monitoring settings:", error);
+    next(error);
+  }
+};
+/**
+ * Handle device update for background monitoring
+ * Called when device connection settings change
+ */
+export const handleDeviceUpdate = async (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+    const { oldIp, oldPort } = req.body;
+
+    logger.info(
+      `Handling device update for background monitoring: ${deviceId}`,
+    );
+
+    // Check if device is currently being monitored
+    const status = backgroundMonitorService.getStatus();
+    const isBeingMonitored = status.devices.some(
+      (device) => device.id === deviceId,
+    );
+
+    if (isBeingMonitored) {
+      // Restart monitoring with new device settings
+      await backgroundMonitorService.restartDeviceMonitoring(deviceId);
+
+      res.json({
+        success: true,
+        message: "Background monitoring updated for device",
+        restarted: true,
+      });
+    } else {
+      res.json({
+        success: true,
+        message: "Device not being monitored, no action needed",
+        restarted: false,
+      });
+    }
+  } catch (error) {
+    logger.error(
+      "Error handling device update for background monitoring:",
+      error,
+    );
+    next(error);
+  }
+};
+
+/**
+ * Real-time stream of background monitoring logs (SSE)
+ * This provides a live feed of attendance logs from the persistent background monitoring
+ */
+export const streamBackgroundMonitoringLogs = async (req, res, next) => {
+  try {
+    // Set up SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    // Check if background monitoring is running
+    const status = backgroundMonitorService.getStatus();
+    if (!status.isRunning) {
+      res.write(
+        `data: ${JSON.stringify({ type: "error", message: "Background monitoring is not running" })}\n\n`,
+      );
+      res.end();
+      return;
+    }
+
+    // Send initial connection message
+    res.write(
+      `data: ${JSON.stringify({ type: "connected", message: "Connected to background monitoring stream", devices: status.devices.length })}\n\n`,
+    );
+
+    logger.info("Client connected to background monitoring stream");
+
+    // Listen for new attendance events from background monitor
+    const attendanceHandler = (data) => {
+      try {
+        const eventData = {
+          type: "attendance",
+          data: {
+            id: data.log.id,
+            timestamp: data.log.timestamp,
+            direction: data.log.direction,
+            verifyMode: data.log.verifyMode,
+            status: data.log.status,
+            employee: {
+              id: data.employee.id,
+              code: data.employee.code,
+              name: data.employee.name,
+              department: data.employee.department,
+            },
+            device: {
+              id: data.deviceId,
+              name: data.device,
+            },
+          },
+        };
+
+        res.write(`data: ${JSON.stringify(eventData)}\n\n`);
+      } catch (error) {
+        logger.error(
+          "Error sending background monitoring event to client:",
+          error,
+        );
+      }
+    };
+
+    backgroundMonitorService.on("newAttendance", attendanceHandler);
+
+    // Handle client disconnect
+    req.on("close", () => {
+      logger.info("Client disconnected from background monitoring stream");
+      backgroundMonitorService.off("newAttendance", attendanceHandler);
+      res.end();
+    });
+
+    // Keep connection alive with periodic heartbeat
+    const heartbeatInterval = setInterval(() => {
+      res.write(`:heartbeat\n\n`);
+    }, 30000); // Every 30 seconds
+
+    req.on("close", () => {
+      clearInterval(heartbeatInterval);
+    });
+  } catch (error) {
+    logger.error("Error in background monitoring stream:", error);
+    next(error);
   }
 };

@@ -121,4 +121,73 @@ router.get(
  */
 router.get("/realtime-all", attendanceController.startRealTimeMonitoringAll);
 
+/**
+ * Background Monitoring Routes
+ */
+
+/**
+ * @route   POST /api/attendance/background-monitor/start
+ * @desc    Start persistent background monitoring
+ * @access  Private (Admin, Manager)
+ */
+router.post(
+  "/background-monitor/start",
+  authorize("admin", "manager"),
+  attendanceController.startBackgroundMonitoring,
+);
+
+/**
+ * @route   POST /api/attendance/background-monitor/stop
+ * @desc    Stop persistent background monitoring
+ * @access  Private (Admin, Manager)
+ */
+router.post(
+  "/background-monitor/stop",
+  authorize("admin", "manager"),
+  attendanceController.stopBackgroundMonitoring,
+);
+
+/**
+ * @route   GET /api/attendance/background-monitor/status
+ * @desc    Get background monitoring status
+ * @access  Private
+ */
+router.get(
+  "/background-monitor/status",
+  attendanceController.getBackgroundMonitoringStatus,
+);
+
+/**
+ * @route   GET /api/attendance/background-monitor/stream
+ * @desc    Real-time stream of background monitoring logs (SSE)
+ * @access  Private
+ */
+router.get(
+  "/background-monitor/stream",
+  attendanceController.streamBackgroundMonitoringLogs,
+);
+
+/**
+ * @route   PUT /api/attendance/background-monitor/settings
+ * @desc    Update background monitoring settings
+ * @access  Private (Admin)
+ */
+router.put(
+  "/background-monitor/settings",
+  authorize("admin"),
+  attendanceController.updateBackgroundMonitoringSettings,
+);
+
+/**
+ * @route   POST /api/attendance/background-monitor/device-update/:deviceId
+ * @desc    Handle device update for background monitoring
+ * @access  Private (Admin, Manager)
+ */
+router.post(
+  "/background-monitor/device-update/:deviceId",
+  authorize("admin", "manager"),
+  validateUUID("deviceId"),
+  attendanceController.handleDeviceUpdate,
+);
+
 export default router;

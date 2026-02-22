@@ -65,6 +65,10 @@ export const devices = customSchema.table(
     model: varchar("model", { length: 50 }).default("S900"),
     ipAddress: varchar("ip_address", { length: 45 }).notNull(), // Support IPv6
     port: integer("port").notNull().default(4370),
+    connectionType: varchar("connection_type", { length: 20 })
+      .notNull()
+      .default("tcp"), // tcp, lan, adms
+    admsConfig: jsonb("adms_config"), // ADMS-specific configuration
     location: varchar("location", { length: 255 }),
     description: text("description"),
     status: varchar("status", { length: 20 }).notNull().default("active"), // active, inactive, error
@@ -81,6 +85,9 @@ export const devices = customSchema.table(
     ipAddressIdx: index("device_ip_address_idx").on(table.ipAddress),
     deviceStatusIdx: index("device_status_idx").on(table.status),
     deviceLocationIdx: index("device_location_idx").on(table.location),
+    connectionTypeIdx: index("device_connection_type_idx").on(
+      table.connectionType,
+    ),
   }),
 );
 
